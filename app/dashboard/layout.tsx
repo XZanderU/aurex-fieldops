@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import Link from "next/link";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -60,15 +61,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         
         <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
           <p className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Operación</p>
-          <a href="#" className="flex items-center gap-3 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium transition-colors">
+          <Link href="/dashboard" className="flex items-center gap-3 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium transition-colors">
             📋 Órdenes de Trabajo
-          </a>
+          </Link>
           <a href="#" className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-800 text-slate-300 text-sm font-medium transition-colors">
             ⚙️ Equipos / Activos
           </a>
-          <a href="#" className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-800 text-slate-300 text-sm font-medium transition-colors">
-            👥 Clientes
-          </a>
+          <Link href="/dashboard/clientes" className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-800 text-slate-300 text-sm font-medium transition-colors">
+              👥 Clientes
+          </Link>
         </nav>
 
         <div className="p-4 border-t border-slate-800 bg-slate-950">
