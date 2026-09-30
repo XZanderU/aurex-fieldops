@@ -3,26 +3,31 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 
-// Definimos los tipos de TypeScript actualizados
 type Customer = { id: string; name: string };
 type Asset = { id: string; name: string; customer_id: string };
+type TeamMember = { user_id: string; role: string };
 type WorkOrder = { 
   id: string; 
   description: string; 
   status: string; 
   customer: { name: string };
-  asset?: { name: string }; // Agregamos el equipo opcional
+  asset?: { name: string };
+  assigned_to?: string;
 };
 
 export default function DashboardHome() {
   const [tenantId, setTenantId] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   
   // Estados para el formulario
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [selectedAssetId, setSelectedAssetId] = useState("");
+  const [selectedAssignee, setSelectedAssignee] = useState("");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -32,25 +37,38 @@ export default function DashboardHome() {
 
   const fetchInitialData = async () => {
     setLoading(true);
+    
+    // 1. Obtener usuario actual
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) setCurrentUserId(user.id);
+
+    // 2. Obtener Tenant ID
     const { data: tenantData } = await supabase.from("tenants").select("id").single();
     
     if (tenantData) {
       setTenantId(tenantData.id);
       
+      // 3. Cargar Clientes, Equipos y Miembros del Equipo de la empresa
       const { data: customersData } = await supabase.from("customers").select("id, name");
       if (customersData) setCustomers(customersData);
 
-      // NUEVO: Cargamos también los equipos
       const { data: assetsData } = await supabase.from("assets").select("id, name, customer_id");
       if (assetsData) setAssets(assetsData);
 
-      // ACTUALIZADO: Traemos el nombre del equipo asignado a la orden
+      const { data: teamData } = await supabase
+        .from("tenant_users")
+        .select("user_id, role")
+        .eq("tenant_id", tenantData.id);
+      if (teamData) setTeamMembers(teamData);
+
+      // 4. Cargar Órdenes
       const { data: ordersData } = await supabase
         .from("work_orders")
         .select(`
           id, 
           description, 
           status,
+          assigned_to,
           customer:customers(name),
           asset:assets(name)
         `)
@@ -72,7 +90,8 @@ export default function DashboardHome() {
         {
           tenant_id: tenantId,
           customer_id: selectedCustomerId,
-          asset_id: selectedAssetId || null, // Guardamos el equipo si se seleccionó
+          asset_id: selectedAssetId || null,
+          assigned_to: selectedAssignee || null, // NUEVO: Guardamos el técnico asignado
           description: description,
           status: "pending"
         }
@@ -82,6 +101,7 @@ export default function DashboardHome() {
       setDescription("");
       setSelectedCustomerId("");
       setSelectedAssetId("");
+      setSelectedAssignee("");
       fetchInitialData();
     } else {
       console.error("Error creando orden:", error);
@@ -99,7 +119,6 @@ export default function DashboardHome() {
     if (!error) fetchInitialData();
   };
 
-  // NUEVO: Filtramos los equipos basados en el cliente seleccionado
   const filteredAssets = assets.filter(a => a.customer_id === selectedCustomerId);
 
   return (
@@ -122,7 +141,7 @@ export default function DashboardHome() {
                   value={selectedCustomerId}
                   onChange={(e) => {
                     setSelectedCustomerId(e.target.value);
-                    setSelectedAssetId(""); // Reseteamos el equipo si cambia el cliente
+                    setSelectedAssetId(""); 
                   }}
                   className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
                   required
@@ -134,9 +153,8 @@ export default function DashboardHome() {
                 </select>
               </div>
 
-              {/* NUEVO CAMPO: Selector de Equipo */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Equipo a Reparar (Opcional)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Equipo a Reparar</label>
                 <select 
                   id="select-asset"
                   value={selectedAssetId}
@@ -145,20 +163,34 @@ export default function DashboardHome() {
                   className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-100 disabled:text-slate-400"
                 >
                   <option value="">
-                    {!selectedCustomerId 
-                      ? "Primero selecciona un cliente" 
-                      : filteredAssets.length === 0 
-                        ? "Este cliente no tiene equipos" 
-                        : "Selecciona un equipo..."}
+                    {!selectedCustomerId ? "Primero selecciona un cliente" : filteredAssets.length === 0 ? "Este cliente no tiene equipos" : "Selecciona un equipo..."}
                   </option>
                   {filteredAssets.map(a => (
                     <option key={a.id} value={a.id}>{a.name}</option>
                   ))}
                 </select>
               </div>
+
+              {/* NUEVO CAMPO: Asignación de Técnico */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Asignar a</label>
+                <select 
+                  id="select-assignee"
+                  value={selectedAssignee}
+                  onChange={(e) => setSelectedAssignee(e.target.value)}
+                  className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                >
+                  <option value="">Sin asignar (Abierta)</option>
+                  {teamMembers.map(member => (
+                    <option key={member.user_id} value={member.user_id}>
+                      {member.user_id === currentUserId ? "🙋‍♂️ Yo (Coordinador)" : `👷‍♂️ Técnico (${member.user_id.split('-')[0]})`}
+                    </option>
+                  ))}
+                </select>
+              </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Descripción del Trabajo</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
                 <textarea 
                   id="textarea-description"
                   value={description}
@@ -197,10 +229,14 @@ export default function DashboardHome() {
                       {order.status === 'in_progress' && <span className="py-1 px-2.5 rounded-md text-xs font-bold bg-blue-100 text-blue-800">En Progreso</span>}
                       {order.status === 'completed' && <span className="py-1 px-2.5 rounded-md text-xs font-bold bg-emerald-100 text-emerald-800">Completado</span>}
                       <span className="text-xs text-slate-400 font-mono">#{order.id.split('-')[0]}</span>
+                      
+                      {/* NUEVO: Etiqueta de Asignación */}
+                      {order.assigned_to === currentUserId && (
+                        <span className="py-1 px-2.5 rounded-md text-xs font-bold bg-indigo-100 text-indigo-800">🙋‍♂️ Mía</span>
+                      )}
                     </div>
                     <h3 className="font-bold text-slate-800 mb-1">{order.customer?.name}</h3>
                     
-                    {/* NUEVO: Mostrar el equipo si existe */}
                     {order.asset && (
                       <p className="text-sm font-medium text-blue-600 flex items-center gap-1 mb-1">
                         ⚙️ {order.asset.name}
