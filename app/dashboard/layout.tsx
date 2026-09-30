@@ -61,13 +61,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         
         <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
           <p className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Operación</p>
-          <Link href="/dashboard" className="flex items-center gap-3 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium transition-colors">
+          <Link href="/dashboard" id="nav-link-work-orders" className="flex items-center gap-3 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium transition-colors">
             📋 Órdenes de Trabajo
           </Link>
-          <a href="#" className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-800 text-slate-300 text-sm font-medium transition-colors">
+          <Link href="/dashboard/equipos" id="nav-link-equipos" className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-800 text-slate-300 text-sm font-medium transition-colors">
             ⚙️ Equipos / Activos
-          </a>
-          <Link href="/dashboard/clientes" className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-800 text-slate-300 text-sm font-medium transition-colors">
+          </Link>
+          <Link href="/dashboard/clientes" id="nav-link-clients" className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-800 text-slate-300 text-sm font-medium transition-colors">
               👥 Clientes
           </Link>
         </nav>
