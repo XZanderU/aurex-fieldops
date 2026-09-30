@@ -70,6 +70,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <Link href="/dashboard/clientes" id="nav-link-clients" className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-800 text-slate-300 text-sm font-medium transition-colors">
               👥 Clientes
           </Link>
+          <Link href="/dashboard/equipo" id="nav-link-equipo" className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-800 text-slate-300 text-sm font-medium transition-colors">
+              👥 Mi Equipo
+          </Link>
         </nav>
 
         <div className="p-4 border-t border-slate-800 bg-slate-950">
